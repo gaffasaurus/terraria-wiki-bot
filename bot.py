@@ -14,6 +14,8 @@ from discord.ext import commands
 from collections import defaultdict
 import pickle
 
+from fuzzywuzzy import process
+
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -29,7 +31,7 @@ def dd():
     return GuildSetting()
 
 
-if os.path.getsize("data.txt") == 0:
+if not os.path.isfile("data.txt") or os.path.getsize("data.txt") == 0:
     guild_settings = defaultdict(dd)
 else:
     data_file = open("data.txt", "rb")
@@ -113,9 +115,16 @@ async def boss_info(ctx, *args):
 
     boss_lower = [boss.lower() for boss in all_bosses]
     if name.lower() not in boss_lower:
-        await ctx.send(
-            "No boss exists with that name. Did you mean (fuzzy search here)"
-        )
+        ratios = process.extract(name.lower(), boss_lower)
+        close = [r for r in ratios if r[1] >= 75]
+        close_str = ", ".join([r[0] for r in close])
+
+        if len(close) > 0:
+            await ctx.send(
+                f"No boss exists with that name. Did you mean one of the following: {close_str}?"
+            )
+        else:
+            await ctx.send("No boss exists with that name. No close matches found.")
     else:
         index = boss_lower.index(name.lower())
         boss_info = get_boss_info(
