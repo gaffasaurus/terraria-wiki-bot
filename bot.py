@@ -11,13 +11,29 @@ from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 
+from collections import defaultdict
+import pickle
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 bot = commands.Bot(command_prefix="t!")
 
-difficulty = "normal"
+
+class GuildSetting:
+    def __init__(self):
+        self.difficulty = "normal"
+
+
+def dd():
+    return GuildSetting()
+
+
+if os.path.getsize("data.txt") == 0:
+    guild_settings = defaultdict(dd)
+else:
+    data_file = open("data.txt", "rb")
+    guild_settings = pickle.load(data_file)
 
 all_bosses = [
     "King Slime",
@@ -61,15 +77,21 @@ async def on_ready():
 
 @bot.command(name="difficulty", help="Choose a difficulty mode.", aliases=["mode"])
 async def set_difficulty(ctx, mode=None):
-    global difficulty
+    global guild_settings
 
     if mode is None:
-        await ctx.send(f"The current difficulty is **{difficulty}**.")
+        await ctx.send(
+            f"The current difficulty is **{guild_settings[ctx.guild.id].difficulty}**."
+        )
         return
 
     mode = mode.lower()
     if mode in ["normal", "expert", "master"]:
-        difficulty = mode
+        guild_settings[ctx.guild.id].difficulty = mode
+
+        data_file = open("data.txt", "wb")
+        pickle.dump(guild_settings, data_file)
+
         await ctx.send(f"Difficulty has been set to **{mode}**.")
     else:
         await ctx.send(
@@ -96,7 +118,9 @@ async def boss_info(ctx, *args):
         )
     else:
         index = boss_lower.index(name.lower())
-        boss_info = get_boss_info(all_bosses[index])
+        boss_info = get_boss_info(
+            all_bosses[index], guild_settings[ctx.guild.id].difficulty
+        )
         drops = ""
         for drop in boss_info.drops:
             if drop[0] == "item":
@@ -117,7 +141,7 @@ async def boss_info(ctx, *args):
         )
 
 
-def get_boss_drops(boss, url, soup):
+def get_boss_drops(boss, url, soup, difficulty):
     # boss = "Queen Bee"
     boss_drops = []
 
@@ -231,7 +255,7 @@ def get_boss_drops(boss, url, soup):
     return -1
 
 
-def get_boss_info(boss):
+def get_boss_info(boss, difficulty):
     try:
         url = requests.get(
             "https://terraria.gamepedia.com/" + "_".join(boss.split(" "))
@@ -240,7 +264,7 @@ def get_boss_info(boss):
         return "invalid url"
     soup = BeautifulSoup(url.content, "html.parser")
     # print(soup.prettify())
-    drops = get_boss_drops(boss, url, soup)
+    drops = get_boss_drops(boss, url, soup, difficulty)
     if drops == -1:
         return "Error: Something went wrong when getting that boss's information."
     name = soup.find("h1", class_="firstHeading").get_text()
