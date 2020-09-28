@@ -23,7 +23,6 @@ all_bosses = [
     "Queen Bee",
     "Skeletron",
     "Wall of Flesh",
-    "rdmode bosses",
     "Queen Slime",
     "The Twins",
     "The Destroyer",
