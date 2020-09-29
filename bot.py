@@ -15,6 +15,7 @@ from collections import defaultdict
 import pickle
 
 from fuzzywuzzy import process
+from items import *
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -70,6 +71,8 @@ all_bosses = [
     "Vortex Pillar",
     "Stardust Pillar",
 ]
+
+all_items = gen_item_list()
 
 
 @bot.event
@@ -131,24 +134,58 @@ async def boss_info(ctx, *args):
             all_bosses[index], guild_settings[ctx.guild.id].difficulty
         )
         drops = ""
-        for drop in boss_info['drops']:
+        for drop in boss_info["drops"]:
             if drop[0] == "item":
                 drops += drop[1] + ": " + drop[2] + "\n"
             else:
                 drops += drop[1] + "\n"
         await ctx.send(
             "__"
-            + boss_info['name']
+            + boss_info["name"]
             + "__\n**Damage:** "
-            + boss_info['damage']
+            + boss_info["damage"]
             + "\n**Max HP:** "
-            + boss_info['max_hp']
+            + boss_info["max_hp"]
             + "\n**Immunities:** "
-            + ", ".join(boss_info['immunities'])
+            + ", ".join(boss_info["immunities"])
             + "\n**__Drops:__**\n"
             # + ", ".join(str(drop) for drop in boss_info['drops'])
             + drops
         )
+
+
+@bot.command(
+    name="item",
+    help="Specify an item name to get information on it.",
+)
+async def item_info(ctx, *args):
+    name = " ".join(args)
+    if name is None:
+        await ctx.send("Specify an item name to get information on it.")
+        return
+
+    item_list = [i[0] for i in all_items]
+    if name.lower() not in item_list:
+        ratios = process.extract(name.lower(), item_list)
+        close = [r for r in ratios if r[1] >= 75]
+        close_str = ", ".join([r[0] for r in close])
+
+        if len(close) > 0:
+            await ctx.send(
+                f"No item exists with that name. Did you mean one of the following: {close_str}?"
+            )
+        else:
+            await ctx.send("No item exists with that name. No close matches found.")
+    else:
+        index = item_list.index(name.lower())
+        data = get_item_info(all_items[index][1])
+
+        str_gen = ""
+        for k in data:
+            str_gen += f"**{k}**\n"
+            str_gen += f"{data[k]}\n"
+
+        await ctx.send(str_gen)
 
 
 def get_boss_drops(boss, url, soup, difficulty):
@@ -298,7 +335,12 @@ def get_boss_info(boss, difficulty):
             try:
                 max_hp = (
                     entry.find("td")
-                    .find("span", class_="m-" + difficulty + (" " + difficulty if difficulty != "normal" else ""))
+                    .find(
+                        "span",
+                        class_="m-"
+                        + difficulty
+                        + (" " + difficulty if difficulty != "normal" else ""),
+                    )
                     .find("span", class_="s")
                     .get_text()
                 )
@@ -333,7 +375,7 @@ def get_boss_info(boss, difficulty):
         "drops": drops,
         "damage": damage,
         "max_hp": max_hp,
-        "immunities": immunities
+        "immunities": immunities,
     }
 
 

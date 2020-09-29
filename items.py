@@ -1,7 +1,6 @@
 import requests
 import bs4 as bs
 from bs4 import BeautifulSoup
-from fuzzywuzzy import process
 
 
 def gen_item_list():
@@ -27,7 +26,7 @@ def get_item_info(item_link):
     stats_div = soup.find("div", class_="section statistics")
 
     # types = []
-    data = {}
+    data = {"Name": soup.find("h1", class_="firstHeading").get_text()}
 
     entries = stats_div.find_all("tr")
     for entry in entries:
@@ -38,6 +37,3 @@ def get_item_info(item_link):
             data[entry.find("th").get_text()] = entry.find("td").get_text()
 
     return data
-
-
-print(get_item_info("/Music_Box"))
