@@ -131,22 +131,23 @@ async def boss_info(ctx, *args):
             all_bosses[index], guild_settings[ctx.guild.id].difficulty
         )
         drops = ""
-        for drop in boss_info.drops:
+        for drop in boss_info['drops']:
             if drop[0] == "item":
                 drops += drop[1] + ": " + drop[2] + "\n"
             else:
                 drops += drop[1] + "\n"
         await ctx.send(
             "__"
-            + boss_info.name
+            + boss_info['name']
             + "__\n**Damage:** "
-            + boss_info.damage
+            + boss_info['damage']
             + "\n**Max HP:** "
-            + boss_info.max_hp
+            + boss_info['max_hp']
             + "\n**Immunities:** "
-            + ", ".join(boss_info.immunities)
+            + ", ".join(boss_info['immunities'])
             + "\n**__Drops:__**\n"
-            + boss_info.drops
+            # + ", ".join(str(drop) for drop in boss_info['drops'])
+            + drops
         )
 
 
@@ -283,6 +284,9 @@ def get_boss_info(boss, difficulty):
     max_hp = ""
     immunities = []
     for entry in entries:
+        # print(entry.prettify())
+        # print("————————————————————————————————————————————————————————————————————")
+        print(entry.find("td"))
         if entry.find("th").get_text() and entry.find("th").get_text() == "Damage":
             damage = (
                 entry.find("td")
@@ -294,7 +298,7 @@ def get_boss_info(boss, difficulty):
             try:
                 max_hp = (
                     entry.find("td")
-                    .find("span", class_="m-" + difficulty + " " + difficulty)
+                    .find("span", class_="m-" + difficulty + (" " + difficulty if difficulty != "normal" else ""))
                     .find("span", class_="s")
                     .get_text()
                 )
@@ -320,15 +324,16 @@ def get_boss_info(boss, difficulty):
                         entry.find("a")["title"]
                         and entry.find("a")["title"] == "Debuffs"
                     ):
-                        immunities = "all debuffs"
+                        immunities = ["All debuffs"]
                 except:
                     print(sys.exc_info()[0])
                     raise
     return {
+        "name": name,
         "drops": drops,
         "damage": damage,
         "max_hp": max_hp,
-        "immunities": immunities,
+        "immunities": immunities
     }
 
 
