@@ -23,16 +23,19 @@ def get_item_info(item_link):
     item_url = requests.get(new_link)
 
     soup = BeautifulSoup(item_url.content, "html.parser")
+
+    images_div = soup.find("div", class_="section images")
+    img = images_div.find("img")
+
     stats_div = soup.find("div", class_="section statistics")
 
-    # types = []
-    data = {"Name": soup.find("h1", class_="firstHeading").get_text()}
+    data = {
+        "Name": soup.find("h1", class_="firstHeading").get_text(),
+        "ImageSource": img["src"],
+    }
 
     entries = stats_div.find_all("tr")
     for entry in entries:
-        # if entry.find("th").get_text() and entry.find("th").get_text() == "Type":
-        #     for item_type in entry.find_all("a"):
-        #         types.append(item_type.get_text())
         if entry.find("th"):
             data[entry.find("th").get_text()] = entry.find("td").get_text()
 

@@ -180,12 +180,18 @@ async def item_info(ctx, *args):
         index = item_list.index(name.lower())
         data = get_item_info(all_items[index][1])
 
-        str_gen = ""
-        for k in data:
-            str_gen += f"**{k}**\n"
-            str_gen += f"{data[k]}\n"
+        embed = discord.Embed(
+            title=data["Name"],
+            url="https://terraria.gamepedia.com" + all_items[index][1],
+        )
 
-        await ctx.send(str_gen)
+        embed.set_thumbnail(url=data["ImageSource"])
+
+        for k in data:
+            if k not in ["Name", "ImageSource"]:
+                embed.add_field(name=k, value=data[k])
+
+        await ctx.send(embed=embed)
 
 
 def get_boss_drops(boss, url, soup, difficulty):
