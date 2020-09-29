@@ -110,7 +110,7 @@ async def set_difficulty(ctx, mode=None):
 )
 async def boss_info(ctx, *args):
     name = " ".join(args)
-    if name is None:
+    if name == "":
         await ctx.send(
             "Specify a boss name to get information on it (Health, Damage, Drops, etc.)"
         )
@@ -160,7 +160,7 @@ async def boss_info(ctx, *args):
 )
 async def item_info(ctx, *args):
     name = " ".join(args)
-    if name is None:
+    if name == "":
         await ctx.send("Specify an item name to get information on it.")
         return
 
