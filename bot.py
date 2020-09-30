@@ -112,7 +112,7 @@ async def set_difficulty(ctx, mode=None):
 )
 async def boss_info(ctx, *args):
     name = " ".join(args)
-    if name is None:
+    if name == "":
         await ctx.send(
             "Specify a boss name to get information on it (Health, Damage, Drops, etc.)"
         )
@@ -162,7 +162,7 @@ async def boss_info(ctx, *args):
 )
 async def item_info(ctx, *args):
     name = " ".join(args)
-    if name is None:
+    if name == "":
         await ctx.send("Specify an item name to get information on it.")
         return
 
@@ -182,15 +182,25 @@ async def item_info(ctx, *args):
         index = item_list.index(name.lower())
         data = get_item_info(all_items[index][1])
 
+        if data == "No information found":
+            await ctx.send(
+                f"This item led to <https://terraria.gamepedia.com{all_items[index][1]}> which had no specific item data available."
+            )
+            return
+
         embed = discord.Embed(
             title=data["Name"],
             url="https://terraria.gamepedia.com" + all_items[index][1],
+            color=discord.Color(data["RarityColor"]),
         )
 
         embed.set_thumbnail(url=data["ImageSource"])
 
+        if "Tooltip" in data:
+            embed.description = data["Tooltip"]
+
         for k in data:
-            if k not in ["Name", "ImageSource"]:
+            if k not in ["Name", "ImageSource", "Tooltip", "RarityColor"]:
                 embed.add_field(name=k, value=data[k])
 
         await ctx.send(embed=embed)
