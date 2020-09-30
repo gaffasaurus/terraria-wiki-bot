@@ -180,15 +180,25 @@ async def item_info(ctx, *args):
         index = item_list.index(name.lower())
         data = get_item_info(all_items[index][1])
 
+        if data == "No information found":
+            await ctx.send(
+                f"This item led to <https://terraria.gamepedia.com{all_items[index][1]}> which had no specific item data available."
+            )
+            return
+
         embed = discord.Embed(
             title=data["Name"],
             url="https://terraria.gamepedia.com" + all_items[index][1],
+            color=discord.Color(data["RarityColor"]),
         )
 
         embed.set_thumbnail(url=data["ImageSource"])
 
+        if "Tooltip" in data:
+            embed.description = data["Tooltip"]
+
         for k in data:
-            if k not in ["Name", "ImageSource"]:
+            if k not in ["Name", "ImageSource", "Tooltip", "RarityColor"]:
                 embed.add_field(name=k, value=data[k])
 
         await ctx.send(embed=embed)
