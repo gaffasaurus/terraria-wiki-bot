@@ -230,17 +230,36 @@ async def item_info(ctx, *args):
             if k not in ["Name", "ImageSource", "Tooltip", "RarityColor", "Max stack"]:
                 embed.add_field(name=k, value=data[k], inline=True)
 
-        for row in craft_data:
-            sort_key = lambda x: ["Result", "Ingredients", "Stations"].index(x[0])
-            for k, v in sorted(row.items(), key=sort_key):
-                if k == "Result":
-                    embed2.add_field(name=k, value=v, inline=True)
-                    continue
-
+        # seperate the categories
+        for k, v in craft_data.items():
+            full = []
+            # seperate the rows
+            for ind, e in enumerate(v):
                 craft_str = ""
-                for i in v:
-                    craft_str += f"[{i[0]}](https://terraria.gamepedia.com{i[1]})\n"
-                embed2.add_field(name=k, value=craft_str, inline=True)
+                max_height = max([len(i[ind]) for i in craft_data.values()])
+                if e == ["prev"]:
+                    full[-1] = (
+                        "\u200b"
+                        + "\n" * (int(max_height / 2) + 1)
+                        + full[-1]
+                        + "\n" * (int(max_height / 2))
+                    )
+
+                    print(full)
+
+                else:
+                    # seperate the items
+                    for i in e:
+                        if k == "Result":
+                            craft_str += i + "\n"
+                        else:
+                            craft_str += (
+                                f"[{i[0]}](https://terraria.gamepedia.com{i[1]})\n"
+                            )
+
+                if craft_str:
+                    full.append(craft_str + "\n" * (max_height - len(e)))
+            embed2.add_field(name=k, value="---------\n".join(full), inline=True)
 
         m = EmbedPageMenu([embed, embed2])
         await m.start(ctx)
