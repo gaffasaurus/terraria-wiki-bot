@@ -226,12 +226,12 @@ async def item_info(ctx, *args):
             embed.description = data["Tooltip"]
 
         embed2 = embed.copy()
+        embed2.title = "Crafting recipes"
 
         for k in data:
             if k not in ["Name", "ImageSource", "Tooltip", "RarityColor", "Max stack"]:
                 embed.add_field(name=k, value=data[k], inline=True)
 
-        print(craft_data)
         if not craft_data["Result"]:
             embed2.add_field(
                 name="Crafting", value="No crafting recipes found.", inline=True
@@ -251,9 +251,9 @@ async def item_info(ctx, *args):
                         if blank_lines != 0:
                             full[-1] = (
                                 "\u200b"
-                                + "\n" * (int(blank_lines / 2) + 1)
+                                + "\n" * math.ceil(blank_lines / 2)
                                 + full[-1]
-                                + "\n" * int(blank_lines / 2)
+                                + "\n" * math.floor(blank_lines / 2)
                             )
                             blank_lines = 0
 

@@ -130,7 +130,33 @@ def get_item_info(item_name, item_link):
                     p = split[1].find("(")
                     if p != -1:
                         res_str += " " + split[1][p:]
-                craft_data["Result"].append([res_str])
+
+                found_empty = False
+                empty_loc, new_str = None, res_str
+                for i, c in enumerate(res_str):
+                    if c == "(":
+                        found_empty = True
+                        empty_loc = i
+                    elif c == ")" and found_empty:
+                        break
+                    elif c.isalnum() and found_empty:
+                        found_empty = False
+                    elif found_empty:
+                        new_str = new_str.replace(c, "")
+
+                if found_empty:
+
+                    versions = [
+                        i["alt"].split("version")[0].strip()[0]
+                        for i in result_div.find_all("img")
+                    ]
+
+                    v = ",".join([ver for ver in versions if ver in set("DMCO3")])
+
+                    empty_loc += 1
+                    new_str = new_str[:empty_loc] + v + new_str[empty_loc:]
+
+                craft_data["Result"].append([new_str])
 
             ingredients = entry.find("td", class_="ingredients")
             if ingredients:
@@ -154,4 +180,4 @@ def get_item_info(item_name, item_link):
     return [data, craft_data]
 
 
-# print(get_item_info("abeemination", "/abeemination")[1])
+# print(get_item_info("snowball", "/Snowball")[1])
