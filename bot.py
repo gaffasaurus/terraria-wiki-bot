@@ -195,8 +195,6 @@ def create_craft_embed(embed, craft_data, is_craft):
             blank_lines = 0
             # seperate the rows
             for ind, e in enumerate(v):
-                if ind > 5:
-                    break
                 craft_str = ""
                 max_height = max([len(i[ind]) for i in craft_data.values()])
                 if e == ["prev"]:
@@ -228,6 +226,10 @@ def create_craft_embed(embed, craft_data, is_craft):
                         + craft_str
                         + "\n" * math.ceil(avg)
                     )
+
+                if len("---------\n".join(full)) > 1000:
+                    full = full[:-1]
+                    break
 
             full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
             print(sum([len(i) for i in full]))
