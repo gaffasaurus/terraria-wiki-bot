@@ -38,25 +38,39 @@ def gen_item_list():
     return items
 
 
-def get_item_info(item_link):
+def get_item_info(item_name, item_link):
     new_link = "https://terraria.gamepedia.com" + item_link
     item_url = requests.get(new_link)
 
     soup = BeautifulSoup(item_url.content, "html.parser")
 
-    stats_div = soup.find("div", class_="section statistics")
-    if not stats_div:
+    stats_div_all = soup.find_all("div", class_="section statistics")
+    if not stats_div_all:
         return "No information found"
 
-    images_div = soup.find("div", class_="section images")
-    if images_div:
-        img = images_div.find("img")
-    else:
-        img = {"src": None}
+    raw_item = "".join([i.lower() for i in item_name if i.isalpha()])
+    stats_div = None
+    img_src = None
+
+    for s in stats_div_all:
+        for sib in s.previous_siblings:
+            if " ".join(sib["class"]) == "section images":
+                curr_image = sib.find("img")
+            if "".join([i.lower() for i in sib.text if i.isalpha()]) == raw_item:
+                stats_div = s
+                img_src = curr_image["src"]
+        if stats_div is not None:
+            break
+
+    if stats_div is None:
+        stats_div = stats_div_all[0]
+        images_div = soup.find("div", class_="section images")
+        if images_div:
+            img_src = images_div.find("img")["src"]
 
     data = {
         "Name": soup.find("h1", class_="firstHeading").get_text(),
-        "ImageSource": img["src"],
+        "ImageSource": img_src,
     }
 
     entries = stats_div.find_all("tr")
@@ -92,7 +106,51 @@ def get_item_info(item_link):
 
     if "RarityColor" not in data:
         data["RarityColor"] = rarity_levels["0"][1]
-    return data
+
+    crafts_div = soup.find("div", class_="crafts")
+    craft_data = []
+    if crafts_div:
+        entries = crafts_div.find_all("tr")
+        for entry in entries:
+            if entry.get_text() == "ResultIngredientsCrafting station":
+                continue
+            row = {}
+
+            result_div = entry.find("td", class_="result")
+            if result_div:
+                split = result_div.text.split("Internal Item ID:")
+                res_str = split[0]
+                if len(split) > 1:
+                    p = split[1].find("(")
+                    if p != -1:
+                        res_str += " " + split[1][p:]
+                row["Result"] = res_str
+
+            ingredients = entry.find("td", class_="ingredients")
+            if ingredients:
+                items = ingredients.find_all("li")
+                crafting_items = [(i.get_text(), i.find("a")["href"]) for i in items]
+                row["Ingredients"] = crafting_items
+
+            station_div = entry.find("td", class_="station")
+            if station_div:
+                stations = set(
+                    [(s["title"], s["href"]) for s in station_div.find_all("a")]
+                )
+                row["Stations"] = stations
+
+            if not row:
+                continue
+
+            if "Result" not in row:
+                row["Result"] = craft_data[-1]["Result"]
+
+            if "Stations" not in row:
+                row["Stations"] = craft_data[-1]["Stations"]
+
+            craft_data.append(row)
+
+    return [data, craft_data]
 
 
-# print(get_item_info("/Minecart_Track"))
+print(get_item_info("iron bar", "/Iron_Bar")[1])

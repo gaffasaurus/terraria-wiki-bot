@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 import discord
 from discord.ext import commands
+from discord.ext import menus
 
 from collections import defaultdict
 import pickle
@@ -77,6 +78,27 @@ all_bosses = [
 all_items = gen_item_list()
 
 
+class EmbedPageMenu(menus.Menu):
+    def __init__(self, embeds):
+        super().__init__()
+        self.embeds = embeds
+        self.page_number = 0
+
+    async def send_initial_message(self, ctx, channel):
+        return await channel.send(embed=self.embeds[self.page_number])
+
+    @menus.button("⬅️")
+    async def decrease_page(self, payload):
+        self.page_number -= 1
+        return await self.message.edit(embed=self.embeds[self.page_number])
+
+    @menus.button("➡️")
+    async def increase_page(self, payload):
+        self.page_number += 1
+        self.page_number %= len(self.embeds)
+        return await self.message.edit(embed=self.embeds[self.page_number])
+
+
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} has connected to Discord!")
@@ -136,8 +158,8 @@ async def boss_info(ctx, *args):
             all_bosses[index], guild_settings[ctx.guild.id].difficulty
         )
         drops = ""
-        for drop in boss_info['drops']:
-            if drop[0] == 'item':
+        for drop in boss_info["drops"]:
+            if drop[0] == "item":
                 drops += drop[1] + ": " + drop[2] + "\n"
             else:
                 drops += drop[1] + "\n"
@@ -180,13 +202,15 @@ async def item_info(ctx, *args):
             await ctx.send("No item exists with that name. No close matches found.")
     else:
         index = item_list.index(name.lower())
-        data = get_item_info(all_items[index][1])
+        all_data = get_item_info(*all_items[index])
 
-        if data == "No information found":
+        if all_data == "No information found":
             await ctx.send(
                 f"This item led to <https://terraria.gamepedia.com{all_items[index][1]}> which had no specific item data available."
             )
             return
+
+        data, craft_data = all_data
 
         embed = discord.Embed(
             title=data["Name"],
@@ -194,15 +218,32 @@ async def item_info(ctx, *args):
             color=discord.Color(data["RarityColor"]),
         )
 
-        embed.set_thumbnail(url=data["ImageSource"])
+        if data["ImageSource"] is not None:
+            embed.set_thumbnail(url=data["ImageSource"])
 
         if "Tooltip" in data:
             embed.description = data["Tooltip"]
 
-        for k in data:
-            if k not in ["Name", "ImageSource", "Tooltip", "RarityColor"]:
-                embed.add_field(name=k, value=data[k])
+        embed2 = embed.copy()
 
-        await ctx.send(embed=embed)
+        for k in data:
+            if k not in ["Name", "ImageSource", "Tooltip", "RarityColor", "Max stack"]:
+                embed.add_field(name=k, value=data[k], inline=True)
+
+        for row in craft_data:
+            sort_key = lambda x: ["Result", "Ingredients", "Stations"].index(x[0])
+            for k, v in sorted(row.items(), key=sort_key):
+                if k == "Result":
+                    embed2.add_field(name=k, value=v, inline=True)
+                    continue
+
+                craft_str = ""
+                for i in v:
+                    craft_str += f"[{i[0]}](https://terraria.gamepedia.com{i[1]})\n"
+                embed2.add_field(name=k, value=craft_str, inline=True)
+
+        m = EmbedPageMenu([embed, embed2])
+        await m.start(ctx)
+
 
 bot.run(TOKEN)
