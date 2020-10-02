@@ -154,4 +154,4 @@ def get_item_info(item_name, item_link):
     return [data, craft_data]
 
 
-print(get_item_info("night's edge", "/Night's_Edge")[1])
+# print(get_item_info("abeemination", "/abeemination")[1])
