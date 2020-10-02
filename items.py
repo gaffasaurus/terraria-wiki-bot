@@ -38,6 +38,71 @@ def gen_item_list():
     return items
 
 
+def get_craft_info(div, craft_data):
+    entries = div.find_all("tr")
+    valid_cnt = 0
+
+    for entry in entries:
+        if entry.get_text() == "ResultIngredientsCrafting station":
+            continue
+        valid_cnt += 1
+
+        result_div = entry.find("td", class_="result")
+        if result_div:
+            split = result_div.text.split("Internal Item ID:")
+            res_str = split[0]
+            if len(split) > 1:
+                p = split[1].find("(")
+                if p != -1:
+                    res_str += " " + split[1][p:]
+
+            found_empty = False
+            empty_loc, new_str = None, res_str
+            for i, c in enumerate(res_str):
+                if c == "(":
+                    found_empty = True
+                    empty_loc = i
+                elif c == ")" and found_empty:
+                    break
+                elif c.isalnum() and found_empty:
+                    found_empty = False
+                elif found_empty:
+                    new_str = new_str.replace(c, "")
+
+            if found_empty:
+
+                versions = [
+                    i["alt"].split("version")[0].strip()[0]
+                    for i in result_div.find_all("img")
+                ]
+
+                v = ",".join([ver for ver in versions if ver in set("DMCO3")])
+
+                empty_loc += 1
+                new_str = new_str[:empty_loc] + v + new_str[empty_loc:]
+
+            craft_data["Result"].append([new_str])
+
+        ingredients = entry.find("td", class_="ingredients")
+        if ingredients:
+            items = ingredients.find_all("li")
+            crafting_items = [(i.get_text(), i.find("a")["href"]) for i in items]
+            craft_data["Ingredients"].append(crafting_items)
+
+        station_div = entry.find("td", class_="station")
+        if station_div:
+            stations = set([(s["title"], s["href"]) for s in station_div.find_all("a")])
+            craft_data["Stations"].append(stations)
+
+        if len(craft_data["Result"]) < valid_cnt:
+            craft_data["Result"].append(["prev"])
+
+        if len(craft_data["Stations"]) < valid_cnt:
+            craft_data["Stations"].append(["prev"])
+
+    return craft_data
+
+
 def get_item_info(item_name, item_link):
     new_link = "https://terraria.gamepedia.com" + item_link
     item_url = requests.get(new_link)
@@ -107,77 +172,34 @@ def get_item_info(item_name, item_link):
     if "RarityColor" not in data:
         data["RarityColor"] = rarity_levels["0"][1]
 
-    crafts_div = soup.find("div", class_="crafts")
+    all_crafts_div = soup.find_all("div", class_="crafts")
+    crafts_div = None
+    used_in_div = None
+    for c in all_crafts_div:
+        if "Recipes" in c.find_previous("h3").text:
+            crafts_div = c
+        elif "Used in" in c.find_previous("h3").text:
+            used_in_div = c
+
     craft_data = {
         "Result": [],
         "Ingredients": [],
         "Stations": [],
     }
+
+    uses_data = {
+        "Result": [],
+        "Ingredients": [],
+        "Stations": [],
+    }
+
     if crafts_div:
-        entries = crafts_div.find_all("tr")
-        valid_cnt = 0
+        craft_data = get_craft_info(crafts_div, craft_data)
 
-        for entry in entries:
-            if entry.get_text() == "ResultIngredientsCrafting station":
-                continue
-            valid_cnt += 1
+    if used_in_div:
+        uses_data = get_craft_info(used_in_div, uses_data)
 
-            result_div = entry.find("td", class_="result")
-            if result_div:
-                split = result_div.text.split("Internal Item ID:")
-                res_str = split[0]
-                if len(split) > 1:
-                    p = split[1].find("(")
-                    if p != -1:
-                        res_str += " " + split[1][p:]
-
-                found_empty = False
-                empty_loc, new_str = None, res_str
-                for i, c in enumerate(res_str):
-                    if c == "(":
-                        found_empty = True
-                        empty_loc = i
-                    elif c == ")" and found_empty:
-                        break
-                    elif c.isalnum() and found_empty:
-                        found_empty = False
-                    elif found_empty:
-                        new_str = new_str.replace(c, "")
-
-                if found_empty:
-
-                    versions = [
-                        i["alt"].split("version")[0].strip()[0]
-                        for i in result_div.find_all("img")
-                    ]
-
-                    v = ",".join([ver for ver in versions if ver in set("DMCO3")])
-
-                    empty_loc += 1
-                    new_str = new_str[:empty_loc] + v + new_str[empty_loc:]
-
-                craft_data["Result"].append([new_str])
-
-            ingredients = entry.find("td", class_="ingredients")
-            if ingredients:
-                items = ingredients.find_all("li")
-                crafting_items = [(i.get_text(), i.find("a")["href"]) for i in items]
-                craft_data["Ingredients"].append(crafting_items)
-
-            station_div = entry.find("td", class_="station")
-            if station_div:
-                stations = set(
-                    [(s["title"], s["href"]) for s in station_div.find_all("a")]
-                )
-                craft_data["Stations"].append(stations)
-
-            if len(craft_data["Result"]) < valid_cnt:
-                craft_data["Result"].append(["prev"])
-
-            if len(craft_data["Stations"]) < valid_cnt:
-                craft_data["Stations"].append(["prev"])
-
-    return [data, craft_data]
+    return [data, craft_data, uses_data]
 
 
-# print(get_item_info("snowball", "/Snowball")[1])
+# print(get_item_info("iron bar", "/Iron_Bar")[2])

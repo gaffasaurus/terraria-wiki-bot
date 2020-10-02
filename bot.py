@@ -179,6 +179,61 @@ async def boss_info(ctx, *args):
         )
 
 
+def create_craft_embed(embed, craft_data, is_craft):
+    if not craft_data["Result"]:
+        embed.add_field(
+            name="Crafting" if is_craft else "Used in",
+            value="No crafting recipes found."
+            if is_craft
+            else "This item is not used in any crafting recipes.",
+            inline=True,
+        )
+    else:
+        # seperate the categories
+        for k, v in craft_data.items():
+            full = []
+            blank_lines = 0
+            # seperate the rows
+            for ind, e in enumerate(v):
+                if ind > 5:
+                    break
+                craft_str = ""
+                max_height = max([len(i[ind]) for i in craft_data.values()])
+                if e == ["prev"]:
+                    blank_lines += max_height + 1
+                else:
+                    if blank_lines != 0:
+                        full[-1] = (
+                            "\u200b"
+                            + "\n" * math.ceil(blank_lines / 2)
+                            + full[-1]
+                            + "\n" * math.floor(blank_lines / 2)
+                        )
+                        blank_lines = 0
+
+                    # seperate the items
+                    for i in e:
+                        if k == "Result":
+                            craft_str += i + "\n"
+                        else:
+                            craft_str += (
+                                f"[{i[0]}](https://terraria.gamepedia.com{i[1]})\n"
+                            )
+
+                if craft_str:
+                    avg = (max_height - len(e)) / 2
+                    full.append(
+                        "\u200b"
+                        + "\n" * math.floor(avg)
+                        + craft_str
+                        + "\n" * math.ceil(avg)
+                    )
+
+            full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
+            print(sum([len(i) for i in full]))
+            embed.add_field(name=k, value="---------\n".join(full), inline=True)
+
+
 @bot.command(
     name="item",
     help="Specify an item name to get information on it.",
@@ -211,7 +266,7 @@ async def item_info(ctx, *args):
             )
             return
 
-        data, craft_data = all_data
+        data, craft_data, uses_data = all_data
 
         embed = discord.Embed(
             title=data["Name"],
@@ -226,59 +281,19 @@ async def item_info(ctx, *args):
             embed.description = data["Tooltip"]
 
         embed2 = embed.copy()
-        embed2.title = "Crafting recipes"
+        embed2.description = "Crafting recipes"
+
+        embed3 = embed.copy()
+        embed3.description = "Item use recipes"
 
         for k in data:
             if k not in ["Name", "ImageSource", "Tooltip", "RarityColor", "Max stack"]:
                 embed.add_field(name=k, value=data[k], inline=True)
 
-        if not craft_data["Result"]:
-            embed2.add_field(
-                name="Crafting", value="No crafting recipes found.", inline=True
-            )
-        else:
-            # seperate the categories
-            for k, v in craft_data.items():
-                full = []
-                blank_lines = 0
-                # seperate the rows
-                for ind, e in enumerate(v):
-                    craft_str = ""
-                    max_height = max([len(i[ind]) for i in craft_data.values()])
-                    if e == ["prev"]:
-                        blank_lines += max_height + 1
-                    else:
-                        if blank_lines != 0:
-                            full[-1] = (
-                                "\u200b"
-                                + "\n" * math.ceil(blank_lines / 2)
-                                + full[-1]
-                                + "\n" * math.floor(blank_lines / 2)
-                            )
-                            blank_lines = 0
+        create_craft_embed(embed2, craft_data, True)
+        create_craft_embed(embed3, uses_data, False)
 
-                        # seperate the items
-                        for i in e:
-                            if k == "Result":
-                                craft_str += i + "\n"
-                            else:
-                                craft_str += (
-                                    f"[{i[0]}](https://terraria.gamepedia.com{i[1]})\n"
-                                )
-
-                    if craft_str:
-                        avg = (max_height - len(e)) / 2
-                        full.append(
-                            "\u200b"
-                            + "\n" * math.floor(avg)
-                            + craft_str
-                            + "\n" * math.ceil(avg)
-                        )
-
-                full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
-                embed2.add_field(name=k, value="---------\n".join(full), inline=True)
-
-        m = EmbedPageMenu([embed, embed2])
+        m = EmbedPageMenu([embed, embed2, embed3])
         await m.start(ctx)
 
 
