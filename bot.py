@@ -179,9 +179,10 @@ async def boss_info(ctx, *args):
         )
 
 
-def create_craft_embed(embed, craft_data, is_craft):
+def create_craft_embed(base_embed, craft_data, is_craft):
+    embeds = [base_embed.copy()]
     if not craft_data["Result"]:
-        embed.add_field(
+        embeds[0].add_field(
             name="Crafting" if is_craft else "Used in",
             value="No crafting recipes found."
             if is_craft
@@ -190,9 +191,12 @@ def create_craft_embed(embed, craft_data, is_craft):
         )
     else:
         # seperate the categories
-        for k, v in craft_data.items():
+        page_breaks = []
+        for k in ["Ingredients", "Result", "Stations"]:
+            v = craft_data[k]
             full = []
             blank_lines = 0
+            curr_embed_idx = 0
             # seperate the rows
             for ind, e in enumerate(v):
                 craft_str = ""
@@ -227,13 +231,30 @@ def create_craft_embed(embed, craft_data, is_craft):
                         + "\n" * math.ceil(avg)
                     )
 
-                if len("---------\n".join(full)) > 1000:
-                    full = full[:-1]
-                    break
+                if len("---------\n".join(full)) > 1000 and k == "Ingredients":
+                    page_breaks.append(ind)
+                    embeds[-1].add_field(
+                        name=k, value="---------\n".join(full[:-1]), inline=True
+                    )
+                    full = full[-1:]
+                    embeds.append(base_embed.copy())
+                    embeds[-1].description = (
+                        "Crafting recipes (cont.)"
+                        if is_craft
+                        else "Item use recipes (cont.)"
+                    )
+
+                if ind in page_breaks and k != "Ingredients":
+                    embeds[curr_embed_idx].add_field(
+                        name=k, value="---------\n".join(full[:-1]), inline=True
+                    )
+                    full = full[-1:]
+                    curr_embed_idx += 1
 
             full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
-            print(sum([len(i) for i in full]))
-            embed.add_field(name=k, value="---------\n".join(full), inline=True)
+            embeds[-1].add_field(name=k, value="---------\n".join(full), inline=True)
+
+    return embeds
 
 
 @bot.command(
@@ -292,10 +313,10 @@ async def item_info(ctx, *args):
             if k not in ["Name", "ImageSource", "Tooltip", "RarityColor", "Max stack"]:
                 embed.add_field(name=k, value=data[k], inline=True)
 
-        create_craft_embed(embed2, craft_data, True)
-        create_craft_embed(embed3, uses_data, False)
+        craft_embeds = create_craft_embed(embed2, craft_data, True)
+        uses_embeds = create_craft_embed(embed3, uses_data, False)
 
-        m = EmbedPageMenu([embed, embed2, embed3])
+        m = EmbedPageMenu([embed, *craft_embeds, *uses_embeds])
         await m.start(ctx)
 
 
