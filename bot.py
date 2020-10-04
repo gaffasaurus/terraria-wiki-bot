@@ -226,7 +226,6 @@ def create_craft_embed(base_embed, craft_data, is_craft):
         for k in ["Ingredients", "Result", "Stations"]:
             v = craft_data[k]
             full = []
-            blank_lines = 0
             curr_embed_idx = 0
 
             # seperate the rows
@@ -237,15 +236,20 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                 max_height = max([len(i[ind]) for i in craft_data.values()])
                 avg = (max_height - len(e)) / 2
                 if e == ["prev"]:
-                    blank_lines += max_height + 1
-
-                    full[-1] = (
-                        "\u200b"
-                        + "\n" * math.ceil(blank_lines / 2)
-                        + full[-1]
-                        + "\n" * math.floor(blank_lines / 2)
-                    )
-                    blank_lines = 0
+                    if ind % 2 == 1:
+                        full[-1] = (
+                            "\u200b"
+                            + "\n" * math.ceil((max_height + 1) / 2)
+                            + full[-1]
+                            + "\n" * math.floor((max_height + 1) / 2)
+                        )
+                    else:
+                        full[-1] = (
+                            "\u200b"
+                            + "\n" * math.floor((max_height + 1) / 2)
+                            + full[-1]
+                            + "\n" * math.ceil((max_height + 1) / 2)
+                        )
                 else:
                     # seperate the items
                     for i in e:
@@ -264,7 +268,7 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                         + "\n" * math.ceil(avg)
                     )
 
-                if len("---------\n".join(full)) > 1000 and k == "Ingredients":
+                if len("---------\n".join(full)) >= 1024 and k == "Ingredients":
                     page_breaks.append(ind)
                     embed_data[k].append(start_full_state)
 
@@ -293,7 +297,6 @@ def create_craft_embed(base_embed, craft_data, is_craft):
 
                     curr_embed_idx += 1
 
-            full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
             embed_data[k].append(full)
 
         for k in ["Result", "Ingredients", "Stations"]:
