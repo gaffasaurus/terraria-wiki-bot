@@ -80,13 +80,29 @@ all_items = gen_item_list()
 
 
 class EmbedPageMenu(menus.Menu):
-    def __init__(self, embeds):
+    def __init__(self, embeds, sections):
         super().__init__()
         self.embeds = embeds
         self.page_number = 0
+        self.sections = sections
 
     async def send_initial_message(self, ctx, channel):
         return await channel.send(embed=self.embeds[self.page_number])
+
+    @menus.button("⏪")
+    async def decrease_section(self, payload):
+        prev_page = None
+        rev_sections = self.sections[::-1]
+        for i, v in enumerate(rev_sections[:-1]):
+            if self.page_number <= v and self.page_number > rev_sections[i + 1]:
+                prev_page = rev_sections[i + 1]
+
+        if prev_page is None:
+            prev_page = rev_sections[0]
+
+        self.page_number = prev_page
+
+        return await self.message.edit(embed=self.embeds[self.page_number])
 
     @menus.button("⬅️")
     async def decrease_page(self, payload):
@@ -97,6 +113,20 @@ class EmbedPageMenu(menus.Menu):
     async def increase_page(self, payload):
         self.page_number += 1
         self.page_number %= len(self.embeds)
+        return await self.message.edit(embed=self.embeds[self.page_number])
+
+    @menus.button("⏩")
+    async def increase_section(self, payload):
+        next_page = None
+        for i, v in enumerate(self.sections[:-1]):
+            if self.page_number >= v and self.page_number < self.sections[i + 1]:
+                next_page = self.sections[i + 1]
+
+        if next_page is None:
+            next_page = self.sections[0]
+
+        self.page_number = next_page
+
         return await self.message.edit(embed=self.embeds[self.page_number])
 
 
@@ -332,7 +362,9 @@ async def item_info(ctx, *args):
         craft_embeds = create_craft_embed(embed2, craft_data, True)
         uses_embeds = create_craft_embed(embed3, uses_data, False)
 
-        m = EmbedPageMenu([embed, *craft_embeds, *uses_embeds])
+        m = EmbedPageMenu(
+            [embed, *craft_embeds, *uses_embeds], [0, 1, len(craft_embeds) + 1]
+        )
         await m.start(ctx)
 
 
