@@ -181,6 +181,7 @@ async def boss_info(ctx, *args):
 
 def create_craft_embed(base_embed, craft_data, is_craft):
     embeds = [base_embed.copy()]
+    embed_data = defaultdict(lambda: [])
     if not craft_data["Result"]:
         embeds[0].add_field(
             name="Crafting" if is_craft else "Used in",
@@ -216,15 +217,6 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                     )
                     blank_lines = 0
                 else:
-                    # if blank_lines != 0:
-                    #     full[-1] = (
-                    #         "\u200b"
-                    #         + "\n" * math.ceil(blank_lines / 2)
-                    #         + full[-1]
-                    #         + "\n" * math.floor(blank_lines / 2)
-                    #     )
-                    #     blank_lines = 0
-
                     # seperate the items
                     for i in e:
                         if k == "Result":
@@ -244,9 +236,7 @@ def create_craft_embed(base_embed, craft_data, is_craft):
 
                 if len("---------\n".join(full)) > 1000 and k == "Ingredients":
                     page_breaks.append(ind)
-                    embeds[-1].add_field(
-                        name=k, value="---------\n".join(start_full_state), inline=True
-                    )
+                    embed_data[k].append(start_full_state)
 
                     full = [
                         "\n" * math.floor(avg)
@@ -262,9 +252,7 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                     )
 
                 if ind in page_breaks and k != "Ingredients":
-                    embeds[curr_embed_idx].add_field(
-                        name=k, value="---------\n".join(start_full_state), inline=True
-                    )
+                    embed_data[k].append(start_full_state)
 
                     full = [
                         "\u200b"
@@ -276,7 +264,11 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                     curr_embed_idx += 1
 
             full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
-            embeds[-1].add_field(name=k, value="---------\n".join(full), inline=True)
+            embed_data[k].append(full)
+
+        for k in ["Result", "Ingredients", "Stations"]:
+            for i, v in enumerate(embed_data[k]):
+                embeds[i].add_field(name=k, value="---------\n".join(v), inline=True)
 
     return embeds
 
