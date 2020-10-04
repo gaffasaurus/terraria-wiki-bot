@@ -197,21 +197,33 @@ def create_craft_embed(base_embed, craft_data, is_craft):
             full = []
             blank_lines = 0
             curr_embed_idx = 0
+
             # seperate the rows
             for ind, e in enumerate(v):
                 craft_str = ""
+                start_full_state = full.copy()
+
                 max_height = max([len(i[ind]) for i in craft_data.values()])
+                avg = (max_height - len(e)) / 2
                 if e == ["prev"]:
                     blank_lines += max_height + 1
+
+                    full[-1] = (
+                        "\u200b"
+                        + "\n" * math.ceil(blank_lines / 2)
+                        + full[-1]
+                        + "\n" * math.floor(blank_lines / 2)
+                    )
+                    blank_lines = 0
                 else:
-                    if blank_lines != 0:
-                        full[-1] = (
-                            "\u200b"
-                            + "\n" * math.ceil(blank_lines / 2)
-                            + full[-1]
-                            + "\n" * math.floor(blank_lines / 2)
-                        )
-                        blank_lines = 0
+                    # if blank_lines != 0:
+                    #     full[-1] = (
+                    #         "\u200b"
+                    #         + "\n" * math.ceil(blank_lines / 2)
+                    #         + full[-1]
+                    #         + "\n" * math.floor(blank_lines / 2)
+                    #     )
+                    #     blank_lines = 0
 
                     # seperate the items
                     for i in e:
@@ -223,7 +235,6 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                             )
 
                 if craft_str:
-                    avg = (max_height - len(e)) / 2
                     full.append(
                         "\u200b"
                         + "\n" * math.floor(avg)
@@ -234,9 +245,15 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                 if len("---------\n".join(full)) > 1000 and k == "Ingredients":
                     page_breaks.append(ind)
                     embeds[-1].add_field(
-                        name=k, value="---------\n".join(full[:-1]), inline=True
+                        name=k, value="---------\n".join(start_full_state), inline=True
                     )
-                    full = full[-1:]
+
+                    full = [
+                        "\n" * math.floor(avg)
+                        + full[-1].strip("\n\u200b")
+                        + "\n" * math.ceil(avg + 1)
+                    ]
+
                     embeds.append(base_embed.copy())
                     embeds[-1].description = (
                         "Crafting recipes (cont.)"
@@ -246,9 +263,16 @@ def create_craft_embed(base_embed, craft_data, is_craft):
 
                 if ind in page_breaks and k != "Ingredients":
                     embeds[curr_embed_idx].add_field(
-                        name=k, value="---------\n".join(full[:-1]), inline=True
+                        name=k, value="---------\n".join(start_full_state), inline=True
                     )
-                    full = full[-1:]
+
+                    full = [
+                        "\u200b"
+                        + "\n" * math.floor(avg)
+                        + full[-1].strip("\n\u200b")
+                        + "\n" * math.ceil(avg + 1)
+                    ]
+
                     curr_embed_idx += 1
 
             full[-1] = "\u200b" + "\n" * math.ceil(blank_lines / 2) + full[-1]
