@@ -175,11 +175,15 @@ def get_item_info(item_name, item_link):
     all_crafts_div = soup.find_all("div", class_="crafts")
     crafts_div = None
     used_in_div = None
-    for c in all_crafts_div:
-        if "Recipes" in c.find_previous("h3").text:
-            crafts_div = c
-        elif "Used in" in c.find_previous("h3").text:
-            used_in_div = c
+
+    try:
+        for c in all_crafts_div:
+            if "Recipes" in c.find_previous("h3").text and crafts_div is None:
+                crafts_div = c
+            elif "Used in" in c.find_previous("h3").text and used_in_div is None:
+                used_in_div = c
+    except:
+        crafts_div = all_crafts_div[0]
 
     craft_data = {
         "Result": [],
@@ -202,4 +206,4 @@ def get_item_info(item_name, item_link):
     return [data, craft_data, uses_data]
 
 
-# print(get_item_info("iron bar", "/Iron_Bar")[2])
+# print(get_item_info("chests", "/Chests"))
