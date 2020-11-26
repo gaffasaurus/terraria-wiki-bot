@@ -268,7 +268,7 @@ def create_craft_embed(base_embed, craft_data, is_craft):
                         + "\n" * math.ceil(avg)
                     )
 
-                if len("---------\n".join(full)) >= 1024 and k == "Ingredients":
+                if len("—————————\n".join(full)) >= 1024 and k == "Ingredients":
                     page_breaks.append(ind)
                     embed_data[k].append(start_full_state)
 
@@ -301,7 +301,7 @@ def create_craft_embed(base_embed, craft_data, is_craft):
 
         for k in ["Result", "Ingredients", "Stations"]:
             for i, v in enumerate(embed_data[k]):
-                embeds[i].add_field(name=k, value="---------\n".join(v), inline=True)
+                embeds[i].add_field(name=k, value="—————————\n".join(v), inline=True)
 
     return embeds
 

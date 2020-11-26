@@ -1,6 +1,5 @@
 import requests
 import random
-import bs4 as bs
 from bs4 import BeautifulSoup
 
 rarity_levels = {
@@ -29,12 +28,14 @@ def gen_item_list():
 
     soup = BeautifulSoup(url.content, "html.parser")
     item_table = soup.find_all("table")[1]
+
     entries = item_table.find_all("tr")
     for entry in entries:
         fields = entry.find_all("td")
         for i, f in enumerate(fields):
             if i == 1:
-                items.append((f.get_text().lower(), f.find("a")["href"]))
+                if "n/a" not in f.get_text():
+                    items.append((f.get_text().lower(), f.find("a")["href"]))
     return items
 
 
@@ -206,4 +207,4 @@ def get_item_info(item_name, item_link):
     return [data, craft_data, uses_data]
 
 
-# print(get_item_info("chests", "/Chests"))
+# print(get_item_info("iron bar", "/Iron_Bar"))
